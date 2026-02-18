@@ -1,5 +1,6 @@
 """FastAPI backend for LLM Council."""
 
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -11,9 +12,29 @@ import asyncio
 import os
 
 from . import storage
-from .council import run_full_council, generate_conversation_title, stage1_collect_responses, stage2_collect_rankings, stage3_synthesize_final, calculate_aggregate_rankings
+from .council import (
+    run_full_council,
+    generate_conversation_title,
+    stage1_collect_responses,
+    stage2_collect_rankings,
+    stage3_synthesize_final,
+    calculate_aggregate_rankings,
+    bootstrap_council,
+)
+from .config import COUNCIL_MODELS, CHAIRMAN
 
-app = FastAPI(title="LLM Council API")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # ── AGENT BOOTSTRAP (Steps 1-5) ───────────────────────────
+    print("\n🚀 LLM Council bootstrapping...")
+    print(f"   API key: {'✅ set' if os.getenv('OPENROUTER_API_KEY') else '⚠️  using fallback from council_config.py'}")
+    print("   Council manifest:")
+    await bootstrap_council()
+    yield  # app runs here
+
+
+app = FastAPI(title="LLM Council API", lifespan=lifespan)
 
 # CORS — allow explicit origins or fall back to wildcard for production
 _allowed_origins = os.getenv("ALLOWED_ORIGINS", "*")
