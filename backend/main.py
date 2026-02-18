@@ -201,6 +201,14 @@ async def send_message_stream(conversation_id: str, request: SendMessageRequest)
     )
 
 
+# Serve the built React frontend (production) — must be LAST
+import pathlib
+
+_frontend_dist = pathlib.Path(__file__).parent.parent / "frontend" / "dist"
+if _frontend_dist.is_dir():
+    from fastapi.staticfiles import StaticFiles
+    app.mount("/", StaticFiles(directory=str(_frontend_dist), html=True), name="frontend")
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)

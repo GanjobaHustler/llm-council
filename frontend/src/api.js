@@ -1,8 +1,9 @@
 /**
  * API client for the LLM Council backend.
+ * Use VITE_API_URL env var for external backend, or empty string for same-origin (production).
  */
 
-const API_BASE = 'http://localhost:8001';
+const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
 export const api = {
   /**
