@@ -11,8 +11,14 @@ WORKDIR /app
 # Copy project files
 COPY . .
 
-# Install Python dependencies (from pyproject.toml via pip)
-RUN pip install --no-cache-dir -e .
+# Install Python dependencies explicitly (avoids pyproject build-backend issues)
+RUN pip install --no-cache-dir \
+    "fastapi>=0.115.0" \
+    "uvicorn[standard]>=0.32.0" \
+    "python-dotenv>=1.0.0" \
+    "httpx>=0.27.0" \
+    "pydantic>=2.9.0" \
+    "aiofiles>=24.1.0"
 
 # Build the React frontend
 RUN cd frontend && npm ci && npm run build
@@ -21,4 +27,4 @@ RUN cd frontend && npm ci && npm run build
 ENV PORT=8001
 EXPOSE 8001
 
-CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-8001}
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8001}"]

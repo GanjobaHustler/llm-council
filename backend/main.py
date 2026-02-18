@@ -60,7 +60,7 @@ class Conversation(BaseModel):
 @app.get("/health")
 async def root():
     """Health check endpoint."""
-    return {"status": "ok", "service": "LLM Council API"}
+    return {"status": "ok", "service": "LLM Council API", "version": "2.0"}
 
 
 @app.get("/api/conversations", response_model=List[ConversationMetadata])
