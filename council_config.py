@@ -7,11 +7,9 @@
 import os
 
 # ── API KEY ─────────────────────────────────────────────────
-# Prefer environment variable (set in Railway) over hardcoded value
-OPENROUTER_API_KEY = os.getenv(
-    "OPENROUTER_API_KEY",
-    "REDACTED"
-)
+# Set OPENROUTER_API_KEY as an environment variable in Railway.
+# Never hardcode keys here — this file is public.
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 
 # ── BASE CONFIG ──────────────────────────────────────────────
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
