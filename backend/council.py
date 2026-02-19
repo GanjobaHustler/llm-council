@@ -56,12 +56,16 @@ async def bootstrap_council() -> Dict[str, bool]:
 
 #  Stage 1 
 
-async def stage1_collect_responses(user_query: str) -> List[Dict[str, Any]]:
+async def stage1_collect_responses(user_query: str, system_prompt: str = "") -> List[Dict[str, Any]]:
     """
     Phase 1: Send user prompt to all COUNCIL_MODELS in parallel.
     Token cap: max_tokens_phase1 per model.
+    If system_prompt is provided, it is prepended as a system message.
     """
-    messages = [{"role": "user", "content": user_query}]
+    messages = []
+    if system_prompt:
+        messages.append({"role": "system", "content": system_prompt})
+    messages.append({"role": "user", "content": user_query})
     caps = _phase1_caps()
     responses = await query_models_parallel(_slugs(), messages, max_tokens_per_model=caps)
 
@@ -145,6 +149,7 @@ async def stage3_synthesize_final(
     user_query: str,
     stage1_results: List[Dict[str, Any]],
     stage2_results: List[Dict[str, Any]],
+    system_prompt: str = "",
 ) -> Dict[str, Any]:
     """Phase 3: CHAIRMAN synthesises the final answer."""
     stage1_text = "\n\n".join([
@@ -166,7 +171,10 @@ PHASE 2  Peer Rankings:
 
 Synthesise all of this into a single, comprehensive, accurate final answer. Consider the individual responses, peer rankings, and patterns of agreement. Deliver the council verdict:"""
 
-    messages = [{"role": "user", "content": chairman_prompt}]
+    messages = []
+    if system_prompt:
+        messages.append({"role": "system", "content": system_prompt})
+    messages.append({"role": "user", "content": chairman_prompt})
     response = await query_model(CHAIRMAN["slug"], messages, max_tokens=CHAIRMAN["max_tokens"])
 
     if response is None:
@@ -238,8 +246,8 @@ async def generate_conversation_title(user_query: str) -> str:
 
 #  Full pipeline 
 
-async def run_full_council(user_query: str) -> Tuple[List, List, Dict, Dict]:
-    stage1_results = await stage1_collect_responses(user_query)
+async def run_full_council(user_query: str, system_prompt: str = "") -> Tuple[List, List, Dict, Dict]:
+    stage1_results = await stage1_collect_responses(user_query, system_prompt=system_prompt)
 
     if not stage1_results:
         return [], [], {
@@ -249,7 +257,7 @@ async def run_full_council(user_query: str) -> Tuple[List, List, Dict, Dict]:
 
     stage2_results, label_to_model = await stage2_collect_rankings(user_query, stage1_results)
     aggregate_rankings = calculate_aggregate_rankings(stage2_results, label_to_model)
-    stage3_result = await stage3_synthesize_final(user_query, stage1_results, stage2_results)
+    stage3_result = await stage3_synthesize_final(user_query, stage1_results, stage2_results, system_prompt=system_prompt)
 
     return stage1_results, stage2_results, stage3_result, {
         "label_to_model":     label_to_model,

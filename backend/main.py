@@ -22,6 +22,7 @@ from .council import (
     bootstrap_council,
 )
 from .config import COUNCIL_MODELS, CHAIRMAN
+from .prompt_templates import get_template_list, get_template_prompt
 
 
 @asynccontextmanager
@@ -54,7 +55,8 @@ app.add_middleware(
 
 class CreateConversationRequest(BaseModel):
     """Request to create a new conversation."""
-    pass
+    system_prompt: str = ""
+    template_id: str = "blank"
 
 
 class SendMessageRequest(BaseModel):
@@ -75,13 +77,29 @@ class Conversation(BaseModel):
     id: str
     created_at: str
     title: str
+    system_prompt: str = ""
     messages: List[Dict[str, Any]]
 
 
 @app.get("/health")
 async def root():
     """Health check endpoint."""
-    return {"status": "ok", "service": "LLM Council API", "version": "2.0"}
+    return {"status": "ok", "service": "LLM Council API", "version": "3.0"}
+
+
+@app.get("/api/templates")
+async def list_templates():
+    """List available system prompt templates."""
+    return get_template_list()
+
+
+@app.get("/api/templates/{template_id}")
+async def get_template(template_id: str):
+    """Get the full prompt text for a template."""
+    prompt = get_template_prompt(template_id)
+    if prompt is None:
+        raise HTTPException(status_code=404, detail="Template not found")
+    return {"id": template_id, "prompt": prompt}
 
 
 @app.get("/api/conversations", response_model=List[ConversationMetadata])
@@ -92,9 +110,13 @@ async def list_conversations():
 
 @app.post("/api/conversations", response_model=Conversation)
 async def create_conversation(request: CreateConversationRequest):
-    """Create a new conversation."""
+    """Create a new conversation with optional system prompt."""
     conversation_id = str(uuid.uuid4())
-    conversation = storage.create_conversation(conversation_id)
+    # Resolve template if provided, otherwise use raw system_prompt
+    system_prompt = request.system_prompt
+    if request.template_id and request.template_id != "blank" and not system_prompt:
+        system_prompt = get_template_prompt(request.template_id) or ""
+    conversation = storage.create_conversation(conversation_id, system_prompt=system_prompt)
     return conversation
 
 
@@ -129,9 +151,12 @@ async def send_message(conversation_id: str, request: SendMessageRequest):
         title = await generate_conversation_title(request.content)
         storage.update_conversation_title(conversation_id, title)
 
+    # Get per-conversation system prompt
+    system_prompt = conversation.get("system_prompt", "")
+
     # Run the 3-stage council process
     stage1_results, stage2_results, stage3_result, metadata = await run_full_council(
-        request.content
+        request.content, system_prompt=system_prompt
     )
 
     # Add assistant message with all stages
@@ -170,6 +195,9 @@ async def send_message_stream(conversation_id: str, request: SendMessageRequest)
             # Add user message
             storage.add_user_message(conversation_id, request.content)
 
+            # Get per-conversation system prompt
+            system_prompt = conversation.get("system_prompt", "")
+
             # Start title generation in parallel (don't await yet)
             title_task = None
             if is_first_message:
@@ -177,7 +205,7 @@ async def send_message_stream(conversation_id: str, request: SendMessageRequest)
 
             # Stage 1: Collect responses
             yield f"data: {json.dumps({'type': 'stage1_start'})}\n\n"
-            stage1_results = await stage1_collect_responses(request.content)
+            stage1_results = await stage1_collect_responses(request.content, system_prompt=system_prompt)
             yield f"data: {json.dumps({'type': 'stage1_complete', 'data': stage1_results})}\n\n"
 
             # Stage 2: Collect rankings

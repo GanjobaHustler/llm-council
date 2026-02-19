@@ -20,16 +20,38 @@ export const api = {
   /**
    * Create a new conversation.
    */
-  async createConversation() {
+  async createConversation({ system_prompt = '', template_id = 'blank' } = {}) {
     const response = await fetch(`${API_BASE}/api/conversations`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({}),
+      body: JSON.stringify({ system_prompt, template_id }),
     });
     if (!response.ok) {
       throw new Error('Failed to create conversation');
+    }
+    return response.json();
+  },
+
+  /**
+   * List available system prompt templates.
+   */
+  async listTemplates() {
+    const response = await fetch(`${API_BASE}/api/templates`);
+    if (!response.ok) {
+      throw new Error('Failed to list templates');
+    }
+    return response.json();
+  },
+
+  /**
+   * Get the full prompt text of a template.
+   */
+  async getTemplate(templateId) {
+    const response = await fetch(`${API_BASE}/api/templates/${templateId}`);
+    if (!response.ok) {
+      throw new Error('Failed to get template');
     }
     return response.json();
   },

@@ -1,0 +1,85 @@
+.system-prompt-selector {
+  padding: 8px 16px;
+  border-bottom: 1px solid #2a2a2a;
+  background: #1a1a1a;
+}
+
+.template-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.template-row label {
+  color: #888;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.template-row select {
+  flex: 1;
+  background: #2a2a2a;
+  color: #e0e0e0;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.template-row select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toggle-editor-btn {
+  background: transparent;
+  border: 1px solid #444;
+  color: #888;
+  border-radius: 4px;
+  padding: 3px 8px;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.toggle-editor-btn:hover {
+  background: #333;
+  color: #e0e0e0;
+}
+
+.template-description {
+  color: #666;
+  font-size: 0.78rem;
+  margin-top: 4px;
+  font-style: italic;
+}
+
+.template-loading {
+  color: #666;
+  font-size: 0.8rem;
+  margin-top: 4px;
+}
+
+.prompt-editor {
+  width: 100%;
+  margin-top: 6px;
+  background: #222;
+  color: #d0d0d0;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 8px;
+  font-size: 0.82rem;
+  font-family: 'Fira Code', 'Consolas', monospace;
+  line-height: 1.4;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.prompt-editor:disabled {
+  opacity: 0.5;
+}
+
+.prompt-editor:focus {
+  outline: none;
+  border-color: #666;
+}

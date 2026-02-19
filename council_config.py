@@ -18,7 +18,7 @@ OPENROUTER_API_URL  = f"{OPENROUTER_BASE_URL}/chat/completions"
 # ── COUNCIL MEMBERS (LOCKED) ─────────────────────────────────
 COUNCIL_MODELS = [
     {
-        "slug":              "anthropic/claude-sonnet-4-6",
+        "slug":              "anthropic/claude-sonnet-4.6",
         "alias":             "B.A. — Strategist",
         "max_tokens_phase1": 600,
         "max_tokens_phase2": 300,
@@ -30,13 +30,13 @@ COUNCIL_MODELS = [
         "max_tokens_phase2": 300,
     },
     {
-        "slug":              "x-ai/grok-4.1",
+        "slug":              "x-ai/grok-4.1-fast",
         "alias":             "Murdock — Intel",
         "max_tokens_phase1": 600,
         "max_tokens_phase2": 300,
     },
     {
-        "slug":              "moonshotai/kimi-k2-5",
+        "slug":              "moonshotai/kimi-k2-thinking",
         "alias":             "H.M. — Specialist",
         "max_tokens_phase1": 600,
         "max_tokens_phase2": 300,
@@ -45,7 +45,7 @@ COUNCIL_MODELS = [
 
 # ── CHAIRMAN (LOCKED) ────────────────────────────────────────
 CHAIRMAN = {
-    "slug":       "google/gemini-3-pro",
+    "slug":       "google/gemini-3.1-pro-preview",
     "alias":      "Hannibal — Chairman",
     "max_tokens": 1000,
 }

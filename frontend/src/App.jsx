@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import ChatInterface from './components/ChatInterface';
+import SystemPromptSelector from './components/SystemPromptSelector';
 import { api } from './api';
 import './App.css';
 
@@ -9,6 +10,7 @@ function App() {
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const [currentConversation, setCurrentConversation] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [promptConfig, setPromptConfig] = useState({ template_id: 'blank', system_prompt: '' });
 
   // Load conversations on mount
   useEffect(() => {
@@ -42,7 +44,10 @@ function App() {
 
   const handleNewConversation = async () => {
     try {
-      const newConv = await api.createConversation();
+      const newConv = await api.createConversation({
+        system_prompt: promptConfig.system_prompt,
+        template_id: promptConfig.template_id,
+      });
       setConversations([
         { id: newConv.id, created_at: newConv.created_at, message_count: 0 },
         ...conversations,
@@ -189,11 +194,17 @@ function App() {
         onSelectConversation={handleSelectConversation}
         onNewConversation={handleNewConversation}
       />
-      <ChatInterface
-        conversation={currentConversation}
-        onSendMessage={handleSendMessage}
-        isLoading={isLoading}
-      />
+      <div className="main-panel">
+        <SystemPromptSelector
+          onSelect={setPromptConfig}
+          disabled={isLoading}
+        />
+        <ChatInterface
+          conversation={currentConversation}
+          onSendMessage={handleSendMessage}
+          isLoading={isLoading}
+        />
+      </div>
     </div>
   );
 }
