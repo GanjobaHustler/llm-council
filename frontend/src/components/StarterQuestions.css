@@ -1,0 +1,101 @@
+.starter-questions {
+  padding: 24px 32px 8px;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.starter-questions-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 16px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #444;
+}
+
+.starter-icon {
+  font-size: 1rem;
+}
+
+.starter-subtext {
+  font-weight: 400;
+  color: #888;
+}
+
+.starter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.starter-card {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+  font-family: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.starter-card:hover:not(:disabled) {
+  border-color: #4a90e2;
+  box-shadow: 0 2px 12px rgba(74, 144, 226, 0.12);
+  transform: translateY(-1px);
+}
+
+.starter-card:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.starter-card:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.starter-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.severity-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  font-family: 'Fira Code', 'Consolas', monospace;
+}
+
+.domain-badge {
+  font-size: 0.72rem;
+  background: #f0f0f0;
+  color: #555;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-weight: 500;
+}
+
+.starter-card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  line-height: 1.3;
+}
+
+.starter-card-preview {
+  font-size: 0.8rem;
+  color: #666;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

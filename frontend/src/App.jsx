@@ -11,10 +11,12 @@ function App() {
   const [currentConversation, setCurrentConversation] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [promptConfig, setPromptConfig] = useState({ template_id: 'blank', system_prompt: '' });
+  const [starterQuestions, setStarterQuestions] = useState([]);
 
   // Load conversations on mount
   useEffect(() => {
     loadConversations();
+    loadStarterQuestions();
   }, []);
 
   // Load conversation details when selected
@@ -30,6 +32,15 @@ function App() {
       setConversations(convs);
     } catch (error) {
       console.error('Failed to load conversations:', error);
+    }
+  };
+
+  const loadStarterQuestions = async () => {
+    try {
+      const qs = await api.listStarterQuestions();
+      setStarterQuestions(qs);
+    } catch (error) {
+      console.error('Failed to load starter questions:', error);
     }
   };
 
@@ -62,126 +73,125 @@ function App() {
     setCurrentConversationId(id);
   };
 
-  const handleSendMessage = async (content) => {
-    if (!currentConversationId) return;
+  // Core streaming helper — works with an explicit convId to avoid stale closure
+  const _streamMessage = async (convId, content) => {
+    // Optimistic user message
+    const userMessage = { role: 'user', content };
+    const assistantMessage = {
+      role: 'assistant', stage1: null, stage2: null, stage3: null, metadata: null,
+      loading: { stage1: false, stage2: false, stage3: false },
+    };
+    setCurrentConversation((prev) => ({
+      ...prev,
+      messages: prev ? [...prev.messages, userMessage, assistantMessage] : [userMessage, assistantMessage],
+    }));
 
+    await api.sendMessageStream(convId, content, (eventType, event) => {
+      switch (eventType) {
+        case 'stage1_start':
+          setCurrentConversation((prev) => {
+            const msgs = [...prev.messages];
+            msgs[msgs.length - 1].loading.stage1 = true;
+            return { ...prev, messages: msgs };
+          });
+          break;
+        case 'stage1_complete':
+          setCurrentConversation((prev) => {
+            const msgs = [...prev.messages];
+            msgs[msgs.length - 1].stage1 = event.data;
+            msgs[msgs.length - 1].loading.stage1 = false;
+            return { ...prev, messages: msgs };
+          });
+          break;
+        case 'stage2_start':
+          setCurrentConversation((prev) => {
+            const msgs = [...prev.messages];
+            msgs[msgs.length - 1].loading.stage2 = true;
+            return { ...prev, messages: msgs };
+          });
+          break;
+        case 'stage2_complete':
+          setCurrentConversation((prev) => {
+            const msgs = [...prev.messages];
+            msgs[msgs.length - 1].stage2 = event.data;
+            msgs[msgs.length - 1].metadata = event.metadata;
+            msgs[msgs.length - 1].loading.stage2 = false;
+            return { ...prev, messages: msgs };
+          });
+          break;
+        case 'stage3_start':
+          setCurrentConversation((prev) => {
+            const msgs = [...prev.messages];
+            msgs[msgs.length - 1].loading.stage3 = true;
+            return { ...prev, messages: msgs };
+          });
+          break;
+        case 'stage3_complete':
+          setCurrentConversation((prev) => {
+            const msgs = [...prev.messages];
+            msgs[msgs.length - 1].stage3 = event.data;
+            msgs[msgs.length - 1].loading.stage3 = false;
+            return { ...prev, messages: msgs };
+          });
+          break;
+        case 'title_complete':
+          loadConversations();
+          break;
+        case 'complete':
+          loadConversations();
+          setIsLoading(false);
+          break;
+        case 'error':
+          console.error('Stream error:', event.message);
+          setIsLoading(false);
+          break;
+        default:
+          break;
+      }
+    });
+  };
+
+  const handleSendMessage = async (content) => {
+    if (!currentConversationId || isLoading) return;
     setIsLoading(true);
     try {
-      // Optimistically add user message to UI
-      const userMessage = { role: 'user', content };
-      setCurrentConversation((prev) => ({
-        ...prev,
-        messages: [...prev.messages, userMessage],
-      }));
-
-      // Create a partial assistant message that will be updated progressively
-      const assistantMessage = {
-        role: 'assistant',
-        stage1: null,
-        stage2: null,
-        stage3: null,
-        metadata: null,
-        loading: {
-          stage1: false,
-          stage2: false,
-          stage3: false,
-        },
-      };
-
-      // Add the partial assistant message
-      setCurrentConversation((prev) => ({
-        ...prev,
-        messages: [...prev.messages, assistantMessage],
-      }));
-
-      // Send message with streaming
-      await api.sendMessageStream(currentConversationId, content, (eventType, event) => {
-        switch (eventType) {
-          case 'stage1_start':
-            setCurrentConversation((prev) => {
-              const messages = [...prev.messages];
-              const lastMsg = messages[messages.length - 1];
-              lastMsg.loading.stage1 = true;
-              return { ...prev, messages };
-            });
-            break;
-
-          case 'stage1_complete':
-            setCurrentConversation((prev) => {
-              const messages = [...prev.messages];
-              const lastMsg = messages[messages.length - 1];
-              lastMsg.stage1 = event.data;
-              lastMsg.loading.stage1 = false;
-              return { ...prev, messages };
-            });
-            break;
-
-          case 'stage2_start':
-            setCurrentConversation((prev) => {
-              const messages = [...prev.messages];
-              const lastMsg = messages[messages.length - 1];
-              lastMsg.loading.stage2 = true;
-              return { ...prev, messages };
-            });
-            break;
-
-          case 'stage2_complete':
-            setCurrentConversation((prev) => {
-              const messages = [...prev.messages];
-              const lastMsg = messages[messages.length - 1];
-              lastMsg.stage2 = event.data;
-              lastMsg.metadata = event.metadata;
-              lastMsg.loading.stage2 = false;
-              return { ...prev, messages };
-            });
-            break;
-
-          case 'stage3_start':
-            setCurrentConversation((prev) => {
-              const messages = [...prev.messages];
-              const lastMsg = messages[messages.length - 1];
-              lastMsg.loading.stage3 = true;
-              return { ...prev, messages };
-            });
-            break;
-
-          case 'stage3_complete':
-            setCurrentConversation((prev) => {
-              const messages = [...prev.messages];
-              const lastMsg = messages[messages.length - 1];
-              lastMsg.stage3 = event.data;
-              lastMsg.loading.stage3 = false;
-              return { ...prev, messages };
-            });
-            break;
-
-          case 'title_complete':
-            // Reload conversations to get updated title
-            loadConversations();
-            break;
-
-          case 'complete':
-            // Stream complete, reload conversations list
-            loadConversations();
-            setIsLoading(false);
-            break;
-
-          case 'error':
-            console.error('Stream error:', event.message);
-            setIsLoading(false);
-            break;
-
-          default:
-            console.log('Unknown event type:', eventType);
-        }
-      });
+      await _streamMessage(currentConversationId, content);
     } catch (error) {
       console.error('Failed to send message:', error);
-      // Remove optimistic messages on error
       setCurrentConversation((prev) => ({
         ...prev,
         messages: prev.messages.slice(0, -2),
       }));
+      setIsLoading(false);
+    }
+  };
+
+  const handleStarterQuestion = async (question) => {
+    if (isLoading) return;
+    setIsLoading(true);
+    try {
+      // Fetch full question prompt
+      const questionData = await api.getStarterQuestion(question.id);
+
+      // Create conversation with the Fanvue Copilot template
+      const newConv = await api.createConversation({
+        template_id: question.template_id,
+        system_prompt: '',
+      });
+
+      // Update UI state with new conversation
+      setConversations((prev) => [
+        { id: newConv.id, created_at: newConv.created_at, title: 'New Conversation', message_count: 0 },
+        ...prev,
+      ]);
+      setCurrentConversationId(newConv.id);
+      setCurrentConversation({ ...newConv, messages: [] });
+      setPromptConfig({ template_id: question.template_id, system_prompt: newConv.system_prompt || '' });
+
+      // Stream the question to the new conversation
+      await _streamMessage(newConv.id, questionData.prompt);
+    } catch (error) {
+      console.error('Failed to start starter question:', error);
       setIsLoading(false);
     }
   };
@@ -203,6 +213,8 @@ function App() {
           conversation={currentConversation}
           onSendMessage={handleSendMessage}
           isLoading={isLoading}
+          starterQuestions={starterQuestions}
+          onStarterQuestion={handleStarterQuestion}
         />
       </div>
     </div>

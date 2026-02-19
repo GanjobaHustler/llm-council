@@ -57,6 +57,28 @@ export const api = {
   },
 
   /**
+   * List the 5 pre-written Fanvue starter questions.
+   */
+  async listStarterQuestions() {
+    const response = await fetch(`${API_BASE}/api/starter-questions`);
+    if (!response.ok) {
+      throw new Error('Failed to list starter questions');
+    }
+    return response.json();
+  },
+
+  /**
+   * Get the full prompt text of a starter question.
+   */
+  async getStarterQuestion(questionId) {
+    const response = await fetch(`${API_BASE}/api/starter-questions/${questionId}`);
+    if (!response.ok) {
+      throw new Error('Failed to get starter question');
+    }
+    return response.json();
+  },
+
+  /**
    * Get a specific conversation.
    */
   async getConversation(conversationId) {

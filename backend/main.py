@@ -22,7 +22,7 @@ from .council import (
     bootstrap_council,
 )
 from .config import COUNCIL_MODELS, CHAIRMAN
-from .prompt_templates import get_template_list, get_template_prompt
+from .prompt_templates import get_template_list, get_template_prompt, get_starter_questions, get_starter_question_prompt
 
 
 @asynccontextmanager
@@ -85,6 +85,21 @@ class Conversation(BaseModel):
 async def root():
     """Health check endpoint."""
     return {"status": "ok", "service": "LLM Council API", "version": "3.0"}
+
+
+@app.get("/api/starter-questions")
+async def list_starter_questions():
+    """Return the 5 pre-written Fanvue council starter questions."""
+    return get_starter_questions()
+
+
+@app.get("/api/starter-questions/{question_id}")
+async def get_starter_question(question_id: str):
+    """Return the full prompt text for a starter question."""
+    prompt = get_starter_question_prompt(question_id)
+    if prompt is None:
+        raise HTTPException(status_code=404, detail="Starter question not found")
+    return {"id": question_id, "prompt": prompt}
 
 
 @app.get("/api/templates")

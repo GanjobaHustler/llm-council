@@ -3,12 +3,15 @@ import ReactMarkdown from 'react-markdown';
 import Stage1 from './Stage1';
 import Stage2 from './Stage2';
 import Stage3 from './Stage3';
+import StarterQuestions from './StarterQuestions';
 import './ChatInterface.css';
 
 export default function ChatInterface({
   conversation,
   onSendMessage,
   isLoading,
+  starterQuestions,
+  onStarterQuestion,
 }) {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef(null);
@@ -42,8 +45,13 @@ export default function ChatInterface({
       <div className="chat-interface">
         <div className="empty-state">
           <h2>Welcome to LLM Council</h2>
-          <p>Create a new conversation to get started</p>
+          <p>Select a template and create a conversation — or jump straight in with a pre-built session below</p>
         </div>
+        <StarterQuestions
+          questions={starterQuestions}
+          onSelect={onStarterQuestion}
+          disabled={isLoading}
+        />
       </div>
     );
   }
@@ -52,9 +60,16 @@ export default function ChatInterface({
     <div className="chat-interface">
       <div className="messages-container">
         {conversation.messages.length === 0 ? (
-          <div className="empty-state">
-            <h2>Start a conversation</h2>
-            <p>Ask a question to consult the LLM Council</p>
+          <div className="empty-conversation-state">
+            <div className="empty-state">
+              <h2>Start a conversation</h2>
+              <p>Ask a question to consult the LLM Council, or pick a session below</p>
+            </div>
+            <StarterQuestions
+              questions={starterQuestions}
+              onSelect={onStarterQuestion}
+              disabled={isLoading}
+            />
           </div>
         ) : (
           conversation.messages.map((msg, index) => (
