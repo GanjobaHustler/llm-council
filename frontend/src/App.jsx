@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import ChatInterface from './components/ChatInterface';
 import SystemPromptSelector from './components/SystemPromptSelector';
@@ -12,6 +12,9 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [promptConfig, setPromptConfig] = useState({ template_id: 'blank', system_prompt: '' });
   const [starterQuestions, setStarterQuestions] = useState([]);
+  // Prevents the loadConversation useEffect from firing when we manually
+  // set currentConversation during a starter-question stream (avoids race condition crash)
+  const skipConvLoadRef = useRef(false);
 
   // Load conversations on mount
   useEffect(() => {
@@ -22,6 +25,10 @@ function App() {
   // Load conversation details when selected
   useEffect(() => {
     if (currentConversationId) {
+      if (skipConvLoadRef.current) {
+        skipConvLoadRef.current = false; // consume the flag, skip this load
+        return;
+      }
       loadConversation(currentConversationId);
     }
   }, [currentConversationId]);
@@ -90,47 +97,61 @@ function App() {
       switch (eventType) {
         case 'stage1_start':
           setCurrentConversation((prev) => {
+            if (!prev?.messages?.length) return prev;
             const msgs = [...prev.messages];
-            msgs[msgs.length - 1].loading.stage1 = true;
+            const last = msgs[msgs.length - 1];
+            if (!last?.loading) return prev;
+            msgs[msgs.length - 1] = { ...last, loading: { ...last.loading, stage1: true } };
             return { ...prev, messages: msgs };
           });
           break;
         case 'stage1_complete':
           setCurrentConversation((prev) => {
+            if (!prev?.messages?.length) return prev;
             const msgs = [...prev.messages];
-            msgs[msgs.length - 1].stage1 = event.data;
-            msgs[msgs.length - 1].loading.stage1 = false;
+            const last = msgs[msgs.length - 1];
+            if (!last) return prev;
+            msgs[msgs.length - 1] = { ...last, stage1: event.data, loading: { ...(last.loading || {}), stage1: false } };
             return { ...prev, messages: msgs };
           });
           break;
         case 'stage2_start':
           setCurrentConversation((prev) => {
+            if (!prev?.messages?.length) return prev;
             const msgs = [...prev.messages];
-            msgs[msgs.length - 1].loading.stage2 = true;
+            const last = msgs[msgs.length - 1];
+            if (!last?.loading) return prev;
+            msgs[msgs.length - 1] = { ...last, loading: { ...last.loading, stage2: true } };
             return { ...prev, messages: msgs };
           });
           break;
         case 'stage2_complete':
           setCurrentConversation((prev) => {
+            if (!prev?.messages?.length) return prev;
             const msgs = [...prev.messages];
-            msgs[msgs.length - 1].stage2 = event.data;
-            msgs[msgs.length - 1].metadata = event.metadata;
-            msgs[msgs.length - 1].loading.stage2 = false;
+            const last = msgs[msgs.length - 1];
+            if (!last) return prev;
+            msgs[msgs.length - 1] = { ...last, stage2: event.data, metadata: event.metadata, loading: { ...(last.loading || {}), stage2: false } };
             return { ...prev, messages: msgs };
           });
           break;
         case 'stage3_start':
           setCurrentConversation((prev) => {
+            if (!prev?.messages?.length) return prev;
             const msgs = [...prev.messages];
-            msgs[msgs.length - 1].loading.stage3 = true;
+            const last = msgs[msgs.length - 1];
+            if (!last?.loading) return prev;
+            msgs[msgs.length - 1] = { ...last, loading: { ...last.loading, stage3: true } };
             return { ...prev, messages: msgs };
           });
           break;
         case 'stage3_complete':
           setCurrentConversation((prev) => {
+            if (!prev?.messages?.length) return prev;
             const msgs = [...prev.messages];
-            msgs[msgs.length - 1].stage3 = event.data;
-            msgs[msgs.length - 1].loading.stage3 = false;
+            const last = msgs[msgs.length - 1];
+            if (!last) return prev;
+            msgs[msgs.length - 1] = { ...last, stage3: event.data, loading: { ...(last.loading || {}), stage3: false } };
             return { ...prev, messages: msgs };
           });
           break;
@@ -184,6 +205,9 @@ function App() {
         { id: newConv.id, created_at: newConv.created_at, title: 'New Conversation', message_count: 0 },
         ...prev,
       ]);
+      // Skip the loadConversation useEffect — we're about to stream into this conversation
+      // and don't want the server fetch to race/overwrite our optimistic state
+      skipConvLoadRef.current = true;
       setCurrentConversationId(newConv.id);
       setCurrentConversation({ ...newConv, messages: [] });
       setPromptConfig({ template_id: question.template_id, system_prompt: newConv.system_prompt || '' });
